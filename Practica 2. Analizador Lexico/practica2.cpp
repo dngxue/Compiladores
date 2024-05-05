@@ -2,180 +2,192 @@
 #define endl '\n'
 using namespace std;
 
-enum TipoToken{
-    INICIO,
+// tipos de tokens que puede reconocer
+// el analizador léxico
+enum tipoToken{
     NUMERO,
-    ID_1,
-    ID_2,
+    IDENTIFICADOR,
     OPERADOR,
-    ID_INVALIDO,
-    NUM_INVALIDO,
-    MUERTO
+    TOKEN_NO_RECONOCIDO,
 };
 
-unordered_map<TipoToken, string> tipoTokenString = {
-    {INICIO, "INICIO"},
+// mapena cada tipo de token a su nombre
+// como una cadena de texto
+unordered_map<tipoToken, string> tipoTokenString = {
     {NUMERO,"NUMERO"},
-    {ID_1,"ID_1"},
-    {ID_2,"ID_2"},
+    {IDENTIFICADOR,"IDENTIFICADOR"},
     {OPERADOR,"OPERADOR"},
-    {ID_INVALIDO,"ID_INVALIDO"},
-    {NUM_INVALIDO,"NUM_INVALIDO"},
-    {MUERTO, "MUERTO"}
+    {TOKEN_NO_RECONOCIDO,"TOKEN_NO_RECONOCIDO"},
 };
 
-class TokenProcesado
-{
+// inicializa los miembros tipo y valor
+// de la clase con los valores pasados como argumentos
+class TokenProcesado{
     public:
-    int linea;
     string valor;
-    TipoToken tipo;
-    TipoToken posibleError;
+    tipoToken tipo;
 
-    TokenProcesado(TipoToken tipo, string valor, int linea){
+    TokenProcesado(tipoToken tipo, string valor){
         this->tipo = tipo;
         this->valor = valor;
-        this->linea = linea;
-        this->posibleError = INICIO;
     }
 };
-
+// signos que pueden ser reconocidos
 unordered_set<char> signos = {'+','-'};
-TipoToken posibleError = INICIO;
-vector<string> tokens;
 vector<TokenProcesado> tokensProcesados;
-vector<TokenProcesado> errores;
 string nombreArchivo;
 
-TipoToken AFD(string token){
-    TipoToken Estado = INICIO;
+// recibe la cadena
+void AFD(string cadena){
+    int estado = 0; // inicializa el estado en 0
+    string lexema = ""; // auxiliar
+    tipoToken t; // para definir posteriormente el tipo de token
+    char c; // auxiliar
 
-    for(char c: token){
-        
-        if(Estado == MUERTO) return MUERTO;
+    for(int i=0; i<cadena.size(); i++){
+        c = cadena[i]; // auxiliar
 
-        if(Estado != MUERTO){
-            /*  se actualiza la variable global con
-                el valor de Estado */
-            posibleError = Estado;
-        }
+        switch(estado){
 
-        switch(Estado){
-
-            case INICIO:
-                if(isdigit(c) && c != '0'){ // 1-9
-                    Estado = NUMERO;
-                }
-                else if(c == '0'){          // 0
-                    Estado = NUM_INVALIDO;
-                }
-                else if(signos.count(c)){   // +,-
-                    Estado = OPERADOR;
-                }
-                else if(isalpha(c)){        // a-z
-                    Estado = ID_1;
-                }
-                else{
-                    Estado = MUERTO;
-                }
-                break;
-            case NUMERO:
-                if(isdigit(c)){             // 0-9
-                    Estado = NUMERO;
-                }
-                else if(signos.count(c)){   // +,-
-                    Estado = OPERADOR;
-                }
-                else{
-                    Estado = MUERTO;
-                }
-                break;
-            case ID_1:
-                if(isalpha(c)){             // a-z
-                    Estado = ID_2;
-                }else if(signos.count(c)){  // +,-
-                    Estado = OPERADOR;
-                }else{
-                    Estado = MUERTO;
-                }
-                break;
-            case ID_2:
-                if(isalpha(c)){             // mas de dos letras
-                    Estado = ID_INVALIDO;
-                }
-                else if(signos.count(c)){
-                    Estado = OPERADOR;
-                }
-                else{
-                    Estado = MUERTO;
-                }
-                break;
-            case ID_INVALIDO:
-                if(signos.count(c)){
-                    Estado = OPERADOR;
-                }else if(isalpha(c)){
-                    Estado = ID_INVALIDO;
-                }
-                else{
-                    Estado = MUERTO;
-                }
-                break;
-            case OPERADOR:
+            case 0:     // INICIO
                 if(isdigit(c) && c != '0'){
-                    Estado = NUMERO;
+                    lexema += c;
+                    estado = 1;
                 }
-                else if(c == '0'){
-                    Estado = NUM_INVALIDO;
+                else if(c >= 'a' && c <= 'z'){
+                    lexema += c;        
+                    estado = 2;
                 }
-                else if(isalpha(c)){
-                    Estado = ID_1;
-                }
-                else{
-                    Estado = MUERTO;
-                }
-                break;
-            case NUM_INVALIDO:
-                if(isdigit(c)){
-                    Estado = NUM_INVALIDO;
+                else if(c >= 'A' && c <= 'Z'){
+                    lexema += c;
+                    estado = 7;
                 }
                 else if(signos.count(c)){
-                    Estado = OPERADOR;
+                    lexema += c;
+                    t = OPERADOR;
+                    // agregar el token al vector de tokensProcesados
+                    tokensProcesados.push_back(TokenProcesado(t, lexema));
+                    lexema = "";
+                    estado = 0;
+                }else if(c == '0'){
+                    lexema += c;
+                    estado = 4;
+                }else if(c == ' ' || c == '\t' || c == '\n' || c == 13){
+                    	
+                }else if(c == '.'){
+                    lexema += c;
+                    estado = 5;
+                }else{
+                    lexema += c;
+                    estado = 6;
                 }
-                else{
-                    Estado = MUERTO;
+                break;
+
+            case 1:     // NUMERO
+                if(isdigit(c)){
+                    lexema += c;            
+                    estado = 1;
+                }else if(c == '.'){
+                    lexema += c;
+                    estado = 5;
+                }else{
+                    t = NUMERO;
+                    tokensProcesados.push_back(TokenProcesado(t, lexema));
+                    lexema = "";
+                    estado = 0;
+                    i--;
+                }
+                break;
+
+            case 2:     // IDENTIFICADOR UN CARACTER
+                if(c >= 'a' && c <= 'z'){
+                    lexema += c;
+                    estado = 3;
+                }else if(c >= 'A' && c <= 'Z'){
+                    lexema += c;
+                    estado = 7;
+                }else{
+                    t = IDENTIFICADOR;
+                    tokensProcesados.push_back(TokenProcesado(t,lexema));
+                    lexema = "";
+                    estado = 0;
+                    i--;
+                }
+                break;
+
+            case 3:     // IDENTIFICARDOR DOS CARACTERES
+                if(isalpha(c)){
+                    lexema += c;
+                    estado = 7;
+                }else{
+                    t = IDENTIFICADOR;
+                    tokensProcesados.push_back(TokenProcesado(t,lexema));
+                    lexema = "";
+                    estado = 0;
+                    i--;
+                }
+                break;
+
+            case 4:     // CASO ES CERO SOLITO
+                if(isdigit(c) || c == '.'){
+                    lexema += c;
+                    estado = 5;
+                }else{
+                    t = NUMERO;
+                    tokensProcesados.push_back(TokenProcesado(t,lexema));
+                    lexema = "";
+                    estado = 0;
+                    i--;
+                }
+                break;
+            case 5: // NUMERO INVALIDO
+                if(isdigit(c) || c == '.'){
+                    lexema += c;
+                    estado = 5;
+                }else{
+                    t = TOKEN_NO_RECONOCIDO;
+                    tokensProcesados.push_back(TokenProcesado(t,lexema));
+                    lexema = "";
+                    estado = 0;
+                    i--;
+                }
+                break;
+
+            case 6: // ESTADO MUERTO
+                if(!isdigit(c) && !signos.count(c) && !(c >= 'a' && c <= 'z') && c != 0 && !(c = ' ')){
+                    lexema += c;
+                    estado = 6;
+                }else{
+                    t = TOKEN_NO_RECONOCIDO;
+                    tokensProcesados.push_back(TokenProcesado(t,lexema));
+                    lexema = "";
+                    estado = 0;
+                    i--;
+                }
+                
+                break;
+
+            case 7: // IDENTIFICADOR INVALIDO
+                if(isalpha(c)){
+                    lexema += c;
+                    estado = 7;
+                }else{
+                    t = TOKEN_NO_RECONOCIDO;
+                    tokensProcesados.push_back(TokenProcesado(t,lexema));
+                    lexema = "";
+                    estado = 0;
+                    i--;
                 }
                 break;
         }
 
     }
-
-    return Estado;
-}
-
-void procesarCadena(string cadena, int num_linea){
-    if(cadena.size() == 0) return;
-    string aux = "";
-
-    // Por cada caracter especial, divide la cadena y agrega el resultado a tokens
-    /* itera a través de cada caracter c de la cadena */
-    for(char c: cadena){
-        if(signos.count(c)){
-            aux += c;
-        }
-        else{
-            aux += c;
-        }
-
-    }
-
-    if(!aux.empty()){
-        tokens.push_back(aux);
-        tokensProcesados.push_back(TokenProcesado(AFD(aux), aux, num_linea));
-        tokensProcesados.rbegin()->posibleError = posibleError;
-    }
+   
 }
 
 int main(int argc, char *argv[]) {
+    // recibe un argumento, nuestro archivo de texto
+    // que contiene la expresión
     if (argc > 1) {
         nombreArchivo = argv[1];
     } else {
@@ -183,66 +195,37 @@ int main(int argc, char *argv[]) {
     }
 
     ifstream archivo(nombreArchivo);
-
+    // si el archivo no se pudo abrir
     if(!archivo.is_open()){
         cout << "No se pudo abrir el archivo" << endl;
         return 1;
     }
 
     string linea;
-    string cadena;
-    int num_linea = 1;
-
-    tokensProcesados.push_back(TokenProcesado(INICIO, "", num_linea));
-
+    string cadena = "";
+    // agrega a nuestra cadena cada elemento
+    // de la linea
     while(getline(archivo, linea)){
-        istringstream ss(linea);
-
-        while(ss >> cadena){
-            procesarCadena(cadena, num_linea);
-        }
-        num_linea++;
+        cadena += linea;
     }
+    // agrega el final de la cadena
+    cadena += (char)0;
 
+    // for(char c : cadena) {
+    //     cout << c << "_" << (int) c << "  ";
+    // }
+    // cout << endl;
+    // manda a llamar a nuestro AFD para analizar cada caracter
+    AFD(cadena);
+    // imprime la lista de tokens
+    cout << "\033[92mLista de tokens\033[0m" << endl;
     for(TokenProcesado i: tokensProcesados){
-        cout << "<\033[93m " << tipoTokenString[i.tipo] << "\033[0m, \033[96m" << i.valor << "\033[0m >" << endl;
+        if(i.tipo != TOKEN_NO_RECONOCIDO)
+            cout << "<\033[93m " << tipoTokenString[i.tipo] << "\033[0m, \033[96m" << i.valor << "\033[0m >" << endl;
+        else
+            cout << "<\033[91m " << tipoTokenString[i.tipo] << "\033[0m, \033[96m" << i.valor << "\033[0m >" << endl;
     }
-
-    // Se hacen aparte para 0 y tokensProcesados.size()-1 por el tema de los indices
-    // for(int i = 1; i < tokensProcesados.size()-1; i++){
-        
-    //     /*  se declara una referencia t a un elemento del vector
-    //         tokensProcesado en la posicion i
-    //         asi facilitamos el acceso al elemento actual 
-    //         sin necesidad de utilizar la notación del puntero */ 
-    //     TokenProcesado &t = tokensProcesados[i];
-    //     TokenProcesado &t_ant = tokensProcesados[i-1];
-    //     TokenProcesado &t_sig = tokensProcesados[i+1];
-        
-    //     //cout << "Palabra: " << t.valor << ", Tipo: " << tipoTokenString[t.tipo] <<  ", Linea: " << t.linea << endl;
-
-    //     /*  se declara una variable tipo y se le asigna el valor del
-    //         miembro tipo del token actual t */
-    //     TipoToken tipo = t.tipo;
-       
-    //     /* si no llego a ningún estado de aceptación */
-    //     if(tipo == MUERTO){
-    //         errores.push_back(t);
-    //         lineasError.push_back(t.linea);
-    //     }
-    //     else if(estadosAceptacion.count(tipo) == 0){
-    //         t.posibleError = t.tipo;
-    //         errores.push_back(t);
-    //         lineasError.push_back(t.linea);
-    //     }
-
-    // }
-    
-    // for(TokenProcesado i: imprimir){
-    //     cout << "<" << i.tipo << ", " << i.valor << ">" << endl;
-    // }
-
-
+    // cierra el archivo
     archivo.close();
 
     return 0;
