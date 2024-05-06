@@ -54,17 +54,17 @@ string nombreArchivo;
 void match(tipoToken tt);
 
 void AFD(string cadena){
-    int estado = 0; // inicializa el estado en 0
-    string lexema = ""; // auxiliar
-    tipoToken t; // para definir posteriormente el tipo de token
-    char c; // auxiliar
+    int estado = 0; 
+    string lexema = ""; 
+    tipoToken t; 
+    char c; 
 
     for(int i=0; i<cadena.size(); i++){
-        c = cadena[i]; // auxiliar
+        c = cadena[i]; 
 
         switch(estado){
 
-            case 0:     // INICIO
+            case 0:     
                 if(isdigit(c) && c != '0'){
                     lexema += c;
                     estado = 1;
@@ -76,28 +76,24 @@ void AFD(string cadena){
                 else if(c == '+'){
                     lexema += c;
                     t = SUMA;
-                    // agregar el token al vector de tokensProcesados
                     tokensProcesados.push_back(TokenProcesado(t, lexema));
                     lexema = "";
                     estado = 0;
                 }else if(c == '-'){
                     lexema += c;
                     t = RESTA;
-                    // agregar el token al vector de tokensProcesados
                     tokensProcesados.push_back(TokenProcesado(t, lexema));
                     lexema = "";
                     estado = 0;
                 }else if(c == '*'){
                     lexema += c;
                     t = MULTIPLICACION;
-                    // agregar el token al vector de tokensProcesados
                     tokensProcesados.push_back(TokenProcesado(t, lexema));
                     lexema = "";
                     estado = 0;
                 }else if(c == '/'){
                     lexema += c;
                     t = DIVISION;
-                    // agregar el token al vector de tokensProcesados
                     tokensProcesados.push_back(TokenProcesado(t, lexema));
                     lexema = "";
                     estado = 0;
@@ -204,14 +200,15 @@ void AFD(string cadena){
 }
 
 int main(int argc, char *argv[]) {
-    if (argc > 1) {
+    if (argc > 1) { // recibe como argumento
+        // el nombre del archivo que contiene la 
+        // expresion a evaluar
         nombreArchivo = argv[1];
     } else {
         cout << "nombreArchivo.txt" << endl;
     }
 
     ifstream archivo(nombreArchivo);
-    // si el archivo no se pudo abrir
     if(!archivo.is_open()){
         cout << "No se pudo abrir el archivo" << endl;
         return 1;
@@ -219,43 +216,56 @@ int main(int argc, char *argv[]) {
 
     string linea;
     string cadena = "";
-    // agrega a nuestra cadena cada elemento
-    // de la linea
+
     while(getline(archivo, linea)){
         cadena += linea;
     }
-    // agrega el final de la cadena
+
     cadena += (char)0;
-
+    // analizador léxico
     AFD(cadena);
-    // imprime la lista de tokens
-    cout << "\033[92mLista de tokens\033[0m" << endl;
-    for(TokenProcesado i: tokensProcesados){
-        if(i.tipo != TOKEN_NO_RECONOCIDO)
-            cout << "<\033[93m " << tipoTokenString[i.tipo] << "\033[0m, \033[96m" << i.valor << "\033[0m >" << endl;
-        else
-            cout << "<\033[91m " << tipoTokenString[i.tipo] << "\033[0m, \033[96m" << i.valor << "\033[0m >" << endl;
-    }
+    
+    
+    // cout << "\033[92mLista de tokens\033[0m" << endl;
+    // for(TokenProcesado i: tokensProcesados){
+    //     if(i.tipo != TOKEN_NO_RECONOCIDO)
+    //         cout << "<\033[93m " << tipoTokenString[i.tipo] << "\033[0m, \033[96m" << i.valor << "\033[0m >" << endl;
+    //     else
+    //         cout << "<\033[91m " << tipoTokenString[i.tipo] << "\033[0m, \033[96m" << i.valor << "\033[0m >" << endl;
+    // }
 
+    // funcion de análisis sintáctico
+    cout << "\033[34mExpresion: \033[0m" << cadena << endl;
     parser(tokensProcesados);
+    
+    cout << "\033[92mCadena reconocida\033[0m\n" << endl;
 
-    cout << "\033[92mCadena reconocida\033[0m" << endl;
-    // cierra el archivo
     archivo.close();
 
     return 0;
 }
 
+// declaramos una variables auxiliar llamada
+// preanalisis, inicializamos con un valor cualquiera
 TokenProcesado preanalisis = {NUMERO, ""};
+// lista de tokens de tipo TokenProcesado
 vector<TokenProcesado> listatokens;
+// para iterar en cada elemento de la lista de tokens
+// iniciamos en la posición 0
 int pos = 0;
 
+// funcion para nuestro análisis sintáctico
+// Recibe: Lista de tokens procesador por el analizador léxico
 void parser(vector<TokenProcesado> tokensProcesados){
-    
+    // agregamos nuestros tokens a la lista de tokens
     listatokens = tokensProcesados;
+    // preanalisis toma el valor del primer elemento de la lista
     preanalisis = listatokens[pos];
 
+    // iniciamos el análisis sintáctico
     E();
+    // si no hemos llegado al final de la cadena después
+    // de terminar con la gramática
     if(preanalisis.tipo != FIN){
         cout << "\033[91mCadena no reconocida\033[0m" << endl;
         exit(0);
@@ -276,11 +286,16 @@ void T(){
 
 // E´ -> +TE´ | -TE´ | ε
 void Eprima(){
+    // si nuestro token es +
+    // E´ -> +TE´
     if(preanalisis.tipo == SUMA){
         match(SUMA);
         T();
         Eprima();
-    } else if(preanalisis.tipo == RESTA){
+    }
+    // si nuestro token es -
+    // E´ -> -TE´
+    else if(preanalisis.tipo == RESTA){
         match(RESTA);
         T();
         Eprima();
@@ -289,15 +304,24 @@ void Eprima(){
 
 // F -> (E) | # | id
 void F(){
+    // si nuestro token es ()
+    // F -> (E)
     if(preanalisis.tipo == PARENTESIS_APERTURA){
         match(PARENTESIS_APERTURA);
         E();
         match(PARENTESIS_CIERRE);
-    } else if(preanalisis.tipo == NUMERO){
+    }
+    // si nuestro token es #
+    // F -> #
+    else if(preanalisis.tipo == NUMERO){
         match(NUMERO);
-    } else if(preanalisis.tipo == IDENTIFICADOR){
+    }
+    // si nuestro token es id
+    // F -> id
+    else if(preanalisis.tipo == IDENTIFICADOR){
         match(IDENTIFICADOR);
-    } else{
+   
+    }else {
         cout << "\033[91mCadena no reconocida\033[0m" << endl;
         exit(0);
     }
@@ -305,22 +329,32 @@ void F(){
 
 // T´ -> *FT´ | /FT´ | ε
 void Tprima(){
+    // si nuestro token es *
+    // T´ -> *FT´
     if(preanalisis.tipo == MULTIPLICACION){
         match(MULTIPLICACION);
         F();
         Tprima();
-    } else if(preanalisis.tipo == DIVISION){
+    }
+    // si nuestro token es /
+    // T´ -> /FT´
+    else if(preanalisis.tipo == DIVISION){
         match(DIVISION);
         F();
         Tprima();
     }
 }
 
+// para comprobar que el token en el que estás
+// es el que deberías recibir 
 void match(tipoToken tt){
     if(preanalisis.tipo == tt){
-        pos++;
+        pos++; // aumentamos en 1 la posición
+        // igualamos preanalisis al valor de la
+        // siguiente posición en la lista de tokens
         preanalisis = listatokens[pos];
     } else{
+        // si no es el que se esperaba, error
         cout << "\033[91mCadena no reconocida\033[0m" << endl;
         exit(0);
     }
