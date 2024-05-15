@@ -235,7 +235,7 @@ int main(int argc, char *argv[]) {
     // }
 
     // funcion de análisis sintáctico
-    cout << "\033[34mExpresion: \033[0m" << cadena << endl;
+    cout << "\033[34mExpresion: \033[0m" << "\033[33m" << cadena << "\033[0m" << endl;
     parser(tokensProcesados);
     
     cout << "\033[92mCadena reconocida\033[0m\n" << endl;
