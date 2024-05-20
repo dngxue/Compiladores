@@ -35,6 +35,9 @@ class TokenProcesado{
 
 
 /* TABLA DE PRODUCCIONES LL1 -------------------------------------------------------------------------------------- */
+// estructura para las producciones
+// left -> parte izquierda de la producción
+// right -> parte izquierda de la producción
 struct produccion{
     string left;
     vector<string> right;
@@ -44,6 +47,7 @@ struct produccion{
 unordered_map<string, unordered_map<string,produccion>> m;
 
 unordered_set<char> signos = {'+','*'};
+// Conjunto de terminales
 unordered_set<string> terminales = {"IDENTIFICADOR", "SUMA", "MULTIPLICACION", "PARENTESIS_APERTURA", "PARENTESIS_CIERRE", "FIN"};
 vector<TokenProcesado> tokensProcesados;
 string nombreArchivo;
@@ -51,7 +55,7 @@ string nombreArchivo;
 void agregarProduccion(string noTerminal, tipoToken terminal, produccion p);
 void ll1(vector<TokenProcesado> tokensProcesados);
 void producciones();
-void imprimirPila(stack<string> pila);
+// void imprimirPila(stack<string> pila);
 void match(string x, TokenProcesado a);
 
 /* -------------------------------------------------------------------------------------------------------------- */
@@ -164,6 +168,7 @@ int main(int argc, char *argv[]) {
     // funcion para agregar mis producciones
     producciones();
     cout << "\n\033[34mExpresion: \033[0m" << "\033[33m" << cadena << "\033[0m" << endl;
+    // funcion para el análisis sintáctico
     ll1(tokensProcesados);
     
     
@@ -175,7 +180,6 @@ int main(int argc, char *argv[]) {
     //         cout << "<\033[91m " << tipoTokenString[i.tipo] << "\033[0m, \033[96m" << i.valor << "\033[0m >" << endl;
     // }
 
-    // funcion de análisis sintáctico
     archivo.close();
 
     return 0;
@@ -185,38 +189,52 @@ TokenProcesado preanalisis = {IDENTIFICADOR, ""};
 vector<TokenProcesado> listatokens;
 int pos = 0;
 
+/*  funcion ll1 
+    Recibe: Lista de tokens procesados */
 void ll1(vector<TokenProcesado> tokensProcesados){
-    stack<string> s;
-    s.push("FIN");
+    stack<string> s; // declaramos una pila
+    // Agregamos a la pila el fin de cadena y el no terminal E
+    s.push("FIN"); 
     s.push("E");
 
-    string x,a;
+    
+    string x;
+    // para iterar a través de mi cadena
     listatokens = tokensProcesados;
     preanalisis = listatokens[pos];
 
     int count = 0;
+    // mientras la pila no esté vacía
     while(!s.empty()){
+        // le asignamos a x lo que se encuentre
+        // en el tope de la pila
         x = s.top();
-        // cout << "Tope de la pila: " << x << endl;
-        // cout << "a: " << tipoTokenString[preanalisis.tipo] << endl;
 
+        // si es tope de la pila es terminal
         if(terminales.count(x)){
+            // si es igual a fin de cadena
             if(x == "FIN"){
+                // si el tope de la pila es igual al token
+                // en el que estamos actualmente
                 if(x == tipoTokenString[preanalisis.tipo])
-                    s.pop();
+                    s.pop(); // sacamos el tope de la pila
                 else{
+                    // sino, es cadena inválida
                     cout << "\033[91mCADENA INVALIDA\033[0m" << endl;
                     if(pos-1 != -1)
                         pos--;
                     preanalisis = listatokens[pos];
-                    match(x,preanalisis);
+                    match(x,preanalisis); // para imprimir el error
                     return;
                 }
+            // si el tope de la pila no es el fin de cadena
+            // y es igual al token actual que estamos procesando
             }else if(x == tipoTokenString[preanalisis.tipo]){
-                s.pop();
-                pos++;
+                s.pop(); // sacamos el tope de la pila
+                pos++; // avanzamos una posición en la cadena
                 preanalisis = listatokens[pos];
             }else{
+                // sino, es cadena inválida e imprimimos el posible error
                 cout << "\033[91mCADENA INVALIDA\033[0m" << endl;
                 if(pos-1 != -1)
                     pos--;
@@ -224,18 +242,17 @@ void ll1(vector<TokenProcesado> tokensProcesados){
                 match(x,preanalisis);
                 return;
             }
-        }else{
+        }else{ // si el tope de la pila es un no terminal
             auto it = m[x].find(to_string(preanalisis.tipo));
-            if(it != m[x].end()){
-                s.pop();
+            if(it != m[x].end()){ // lo buscamos en la tabla
+                s.pop(); // sacamos el tope de la pila
                 const auto& p = it->second;
+                // agremamos la parte derecha de la producción a la pila
                 for(auto rit = p.right.rbegin(); rit != p.right.rend(); ++rit){
                     if(*rit != "")
                         s.push(*rit);
                 }
-                // cout << "Tope de la pila despues de buscar: " << s.top() << endl;
-                // imprimirPila(s);
-            }else{
+            }else{ // si no, es cadena inválida e imprimimos el posible error
                 cout << "\033[91mCADENA INVALIDA\033[0m" << endl;
                 if(pos-1 != -1)
                     pos--;
@@ -246,20 +263,19 @@ void ll1(vector<TokenProcesado> tokensProcesados){
         }
     }
 
+    // Si la pila está vacía, cadena válida
     cout << "\033[92mCADENA VALIDA\033[0m" << endl;
 }
 
-void imprimirPila(stack<string> pila) {
-    while (!pila.empty()) {
-        cout << pila.top() << " "; // Imprime el elemento en la parte superior de la pila
-        pila.pop(); // Elimina el elemento en la parte superior de la pila
-    }
-    cout << endl;
-}
-
+// función para imprimir el posible error
+// Recibe:  Tope de la pila
+//          Token en la posición anterior a la que estábamos
 void match(string x, TokenProcesado a){
+    // Error después del token en el que estábamos
     cout << "\nError despues de \033[96m" << a.valor << "\033[0m\n";
     cout << "Se esperaba un ";
+    // Dependiendo del valor de X, imprimimos lo que se esperaba, dependiendo de
+    // lo que se encuentre en la tabla de producciones
     if(x == "E"){
         cout << "\033[93mIDENTIFICADOR\033[0m o \033[93m(\033[0m \n";
     }else if(x == "E'"){
@@ -285,7 +301,13 @@ void agregarProduccion(string noTerminal, tipoToken terminal, produccion p){
     m[noTerminal][to_string(terminal)] = p;
 }
 
+/*  Función para agregar las producciones */
 void producciones(){
+    // E -> no terminal
+    // IDENTIFICADOR -> terminal
+    // {"E",{"T","E'"}} producción
+    // Donde  "E" es la parte izq de la producción
+    //        "T", "E" parte derecha de la produccion
     agregarProduccion("E",IDENTIFICADOR,{"E",{"T","E'"}});
     agregarProduccion("E",PARENTESIS_APERTURA,{"E",{"T","E'"}});
 
