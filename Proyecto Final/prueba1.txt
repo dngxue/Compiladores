@@ -1,0 +1,8 @@
+
+var a;
+if(a>a ) {
+
+
+else {
+    var hoollaa;
+}
