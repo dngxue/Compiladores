@@ -136,8 +136,6 @@ int main(int argc, char *argv[]) {
 
     // funcion de análisis sintáctico
     parser(tokensProcesados);
-    
-    cout << "\033[92mCadena reconocida\033[0m\n" << endl;
 
     archivo.close();
 
@@ -607,22 +605,39 @@ void EXPR_S() {
             cout << "\033[91mError semantico en la linea " << preanalisis.linea << ": Variable " << preanalisis.valor << " no declarada.\033[0m" << endl;
     }
     match(IDENTIFICADOR);
-    // if(!match(ASIGNACION)) {
-    //     lineaactual = preanalisis.linea;
-    //     aux = listatokens[pos-1];
-    //     if(aux.linea != lineaactual)
-    //         return;
 
-    //     while(!primero_termino.count(preanalisis.tipo)) {
-    //         pos++;
-    //         preanalisis = listatokens[pos];
-    //         if(preanalisis.tipo == FIN)
-    //             break;
-    //         if(preanalisis.linea != lineaactual)
-    //             return;
-    //     }
-    //     cout << "El valor de la pos actual es: " << preanalisis.valor << " en la linea: " << preanalisis.linea;
-    // }
+    if(!match(ASIGNACION)) {
+        lineaactual = preanalisis.linea;
+        aux = listatokens[pos-1];
+        if(aux.linea != lineaactual)
+            return;
+
+        if(preanalisis.tipo == CORCHETE_APERTURA) {
+            // while(!preanalisis.tipo != CORCHETE_CIERRE) {
+            // pos++;
+            // preanalisis = listatokens[pos];
+            // if(preanalisis.tipo == FIN)
+            //     return;
+            // }
+            BLOCK();
+            return;
+        }
+        while(!primero_termino.count(preanalisis.tipo)) {
+            pos++;
+            preanalisis = listatokens[pos];
+            if(preanalisis.tipo == FIN)
+                break;
+            if(preanalisis.linea != lineaactual)
+                return;
+            if(preanalisis.tipo == CORCHETE_CIERRE) {
+                pos++;
+                preanalisis = listatokens[pos];
+                return;
+            }
+        }
+        cout << "El valor de la pos actual es: " << preanalisis.valor << " en la linea: " << preanalisis.linea;
+    }
+
     EXPR_2();
     if(!match(PUNTO_COMA)) {
         lineaactual = preanalisis.linea;
@@ -688,7 +703,7 @@ void IF_S() {
         if(aux.linea != lineaactual)
             return;
 
-        while(preanalisis.tipo != PARENTESIS_CIERRE) {
+        while(preanalisis.tipo != CORCHETE_APERTURA) {
             pos++;
             preanalisis = listatokens[pos];
             if(preanalisis.tipo == FIN)
@@ -766,12 +781,12 @@ void COMPARACION() {
     else if(preanalisis.tipo == DIFERENTE)
         match(DIFERENTE);
     else {
-        cout << "\033[91mError de sintaxis en la linea " << preanalisis.linea << " se esperaba TERMINO pero se encontro " << preanalisis.valor << "\033[0m" << endl;
+        cout << "\033[91mError de sintaxis en la linea " << preanalisis.linea << " se esperaba COMPARACION pero se encontro " << preanalisis.valor << "\033[0m" << endl;
         lineaactual = preanalisis.linea;
         aux = listatokens[pos-1];
         if(aux.linea != lineaactual)
             return;
-        while(preanalisis.tipo != COMA) {
+        while(!primero_termino.count(preanalisis.tipo) && preanalisis.tipo != PARENTESIS_CIERRE) {
             pos++;
             preanalisis = listatokens[pos];
             if(preanalisis.tipo == FIN)

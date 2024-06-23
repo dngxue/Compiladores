@@ -1,8 +1,7 @@
 
 var a;
-if(a>a ) {
+if (aa <= 2){
 
-
-else {
+}else {
     var hoollaa;
 }
