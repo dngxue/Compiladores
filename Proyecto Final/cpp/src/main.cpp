@@ -101,39 +101,61 @@ unordered_set<tipoToken> siguiente_cadena = {CORR_IZQ, PUNTO_COMA};
 unordered_set<tipoToken> siguiente_primario = {MULTIPLICACION,SUMA,RESTA,DIVISION,PUNTO_COMA,CORR_IZQ,PARENTESIS_CIERRE,MENOR,MAYOR,IGUALDAD,MENOR_IGUAL,MAYOR_IGUAL,DIFERENTE};
 unordered_set<tipoToken> siguiente_block = {VAR,PRINT,POTENCIA,IDENTIFICADOR,CORCHETE_CIERRE,FIN,ELSE};
 
-// unordered_set<tipoToken> siguiente_ = {};
-string nombreArchivo;
 bool match(tipoToken tt);
 
+string rutaCodigoNuevo;
+string rutaCodigoViejo;
 int errores = 0;
 string salida = "";
 bool printDebug = false;
 
+bool ejecutar = false;
+
 void printMap();
 
 int main(int argc, char *argv[]) {
-    if (argc > 1)
-        nombreArchivo = argv[1];
-    else
-        cout << "nombreArchivo.txt" << endl;
 
-    ifstream archivo(nombreArchivo);
+    if (argc == 2) {
+        if(atoi(argv[1]) == 1) {
+            ejecutar = true;
+        }
+    }
+    else
+        cout << " 1/0 " << endl;
+
+    /*
+    rutaCodigoNuevo = "./../cpp/archivos/codigoNuevo.txt";
+    rutaCodigoViejo = "./../cpp/archivos/codigoViejo.txt";
+    */
+    rutaCodigoNuevo = "./../cpp/archivos/codigoNuevo.txt";
+    rutaCodigoViejo = "./../cpp/archivos/codigoViejo.txt";
+    string ruta;
+    // Ejecutar ejecuta el código viejo generado por este programa
+    if(ejecutar) {
+        ruta = rutaCodigoViejo;
+    // Compilar genera el código viejo a partir del nuevo
+    } else {
+        ruta = rutaCodigoNuevo;
+    }
+    
+    ifstream archivo(ruta);
     if(!archivo.is_open()){
-        cout << "No se pudo abrir el archivo" << endl;
+        cout << "No se pudo abrir el archivo " << ruta << endl;
         return 1;
     }
+    stringstream buffer;
+    buffer << archivo.rdbuf();
+    string content = buffer.str();
 
-    string linea;
     string cadena = "";
-
-    while(getline(archivo, linea)){
+    string linea;
+    while(getline(buffer, linea)){
         cadena += linea + '\n';
     }
-
+    archivo.close();
     cadena += (char)0;
     // analizador léxico
     AFD(cadena);
-    
     if(printDebug) {
         cout << "\033[92mLista de tokens\033[0m" << endl;
         for(TokenProcesado i: tokensProcesados){
@@ -147,10 +169,22 @@ int main(int argc, char *argv[]) {
 
     // funcion de análisis sintáctico
     parser(tokensProcesados);
-    if(errores == 0) {
-        cout << salida;
+
+    if(ejecutar) {
+        if(errores == 0)
+            cout << salida;
+    } else {
+        if(errores == 0) {
+            cout << "\033[92m Compilación correcta \033[0m" << endl;
+            ofstream outputFile(rutaCodigoViejo);
+            if (!outputFile) {
+                cerr << "Error al abrir el archivo de salida" << endl;
+                return 1;
+            }
+            outputFile << content;
+            archivo.close();
+        }
     }
-    archivo.close();
 
     return 0;
 }
@@ -284,9 +318,6 @@ int VAR_INIT(bool ejecutar) {
     if(preanalisis.tipo == ASIGNACION) {
         match(ASIGNACION);
         return TERMINO();
-
-        //string valor = listatokens[pos - 1].valor;
-        //tablaSimbolos[listatokens[pos - 2].valor] = valor;
     }
     return 0;
     // ε
@@ -793,24 +824,6 @@ void NUM_P() {
     }
 }
 
-
-
-
-// EXPR_2 -> TERMINO IGUAL_E
-/*int EXPR_2() {
-    cout << "expr_2->";
-    TERMINO();
-    IGUAL_E();
-}
-// IGUAL_E -> = EXPR_2 | ε
-void IGUAL_E() {
-    cout << "igual_e->";
-    if(preanalisis.tipo == ASIGNACION) {
-        match(ASIGNACION);
-        EXPR_2();
-    }
-}*/
-
 // EXPRESION -> LOGIC_AND LOGIC_OR
 int EXPRESION() {
     if(printDebug) cout << "expresion->";
@@ -926,7 +939,7 @@ bool match(tipoToken tt){
         pos++; 
         preanalisis = listatokens[pos];
         return true;
-    } else{
+    } else {
         // si no es el que se esperaba, error
         cout << "\033[91mError de sintaxis en la linea " << preanalisis.linea << " se esperaba " << tipoTokenString[tt] << " pero se encontro " << preanalisis.valor << "\033[0m" << endl;
         errores++;

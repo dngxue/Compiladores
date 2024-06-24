@@ -1,0 +1,4 @@
+var hola = 2;
+print >> hola;
+hola = 4;
+print >> hola;
