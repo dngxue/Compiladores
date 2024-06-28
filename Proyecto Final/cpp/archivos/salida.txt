@@ -1,1 +1,1 @@
-[91mError de sintaxis en la linea 3 se esperaba PUNTO_COMA pero se encontro hola[0m
+9

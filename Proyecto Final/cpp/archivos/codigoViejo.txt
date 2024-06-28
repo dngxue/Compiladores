@@ -1,4 +1,2 @@
-var hola = 2;
-print >> hola;
-hola = 4;
-print >> hola;
+var i=potencia(3,2);
+print >> i;

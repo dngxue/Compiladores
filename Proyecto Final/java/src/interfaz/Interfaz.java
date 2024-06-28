@@ -246,8 +246,8 @@ public class Interfaz extends JFrame{
             areaSalida.setText(content);
 
 			String original = content;
-			String[] buscar = {"[91m", "[0m", "[92m", "[93m"};
-			String[] reemplazar = {"<font color='red'>", "</font><font color='white'>", "<font color='green'>", "<font color='yellow'>"};
+			String[] buscar = {"[91m", "[0m", "[92m", "[93m", "[94m", "[95m", "[96m"};
+			String[] reemplazar = {"<font color='red'>", "</font><font color='white'>", "<font color='green'>", "<font color='yellow'>", "<font color='blue'>", "<font color='purple'>", "<font color='#add8e6'>"};
 
 			String resultado = reemplazarSubcadenas(original, buscar, reemplazar);
 			System.out.println("Texto original: " + original);

@@ -25,8 +25,8 @@ void CADENA(bool ejecutar);
 
 void BLOCK(bool ejecutar);
 
-void POTENCIA_S(bool ejecutar);
-void NUM_P();
+int POTENCIA_S(bool ejecutar);
+int NUM_P();
 
 void EXPR_S(bool ejecutar);
 //void IGUAL_E();
@@ -93,7 +93,7 @@ unordered_set<tipoToken> primero_ = {};
 // CADENA
 unordered_set<tipoToken> primero_statement = {PRINT, POTENCIA, IDENTIFICADOR, IF};
 unordered_set<tipoToken> primero_cadena = {RESTA, SUMA, NUMERO, PARENTESIS_APERTURA, COMILLAS, IDENTIFICADOR};
-unordered_set<tipoToken> primero_termino = {RESTA, SUMA, IDENTIFICADOR, NUMERO, PARENTESIS_APERTURA};
+unordered_set<tipoToken> primero_termino = {RESTA, SUMA, IDENTIFICADOR, NUMERO, PARENTESIS_APERTURA, POTENCIA};
 
 // Conjuntos siguientes
 unordered_set<tipoToken> siguiente_statement = {VAR,PRINT,POTENCIA,IDENTIFICADOR,CORCHETE_CIERRE,FIN};
@@ -210,6 +210,7 @@ void parser(vector<TokenProcesado> tokensProcesados){
     // si no hemos llegado al final de la cadena después de terminar con la gramática
     if(preanalisis.tipo != FIN){
         cout << "\033[91mCadena no reconocida\033[0m" << endl;
+        errores++;
         //exit(0);
     }
 }
@@ -617,6 +618,10 @@ int PRIMARIO() {
         match(NUMERO);
         return valor;
     }
+    else if(preanalisis.tipo == POTENCIA) {
+        int valor = POTENCIA_S(ejecutar);
+        return valor;
+    }
     else if (preanalisis.tipo == PARENTESIS_APERTURA) {
         match(PARENTESIS_APERTURA);
         int valor = TERMINO();
@@ -713,73 +718,74 @@ char TERMINO_4() {
  *                      DECLARACION POTENCIA                    *
  ****************************************************************/
 // POTENCIA_S -> potencia ( NUM_P , numero ) ;
-void POTENCIA_S(bool ejecutar) {
+int POTENCIA_S(bool ejecutar) {
     if(printDebug) cout << "potencia->";
     match(POTENCIA);
     if(!match(PARENTESIS_APERTURA)) {
         lineaactual = preanalisis.linea;
         aux = listatokens[pos-1];
         if(aux.linea != lineaactual)
-            return;
+            return 0;
         while(preanalisis.tipo != NUMERO && preanalisis.tipo != IDENTIFICADOR) {
             pos++;
             preanalisis = listatokens[pos];
             if(preanalisis.tipo == FIN)
                 break;
             if(preanalisis.linea != lineaactual)
-                return;
+                return 0;
         }
-        cout << "Estoy en la funcion potencia_S con valor " << preanalisis.valor << "linea" << preanalisis.linea << endl;
+        if(printDebug) cout << "Estoy en la funcion potencia_S con valor " << preanalisis.valor << "linea" << preanalisis.linea << endl;
     }
-    NUM_P();
+    int base = NUM_P();
     if(!match(COMA)) {
         lineaactual = preanalisis.linea;
         aux = listatokens[pos-1];
         if(aux.linea != lineaactual)
-            return;
+            return 0;
         while(preanalisis.tipo != NUMERO && preanalisis.tipo != IDENTIFICADOR) {
             pos++;
             preanalisis = listatokens[pos];
             if(preanalisis.tipo == FIN)
                 break;
             if(preanalisis.linea != lineaactual)
-                return;
+                return 0;
         }
-        cout << "Estoy en la funcion potencia_S con valor " << preanalisis.valor << "linea" << preanalisis.linea << endl;
+        if(printDebug) cout << "Estoy en la funcion potencia_S con valor " << preanalisis.valor << "linea" << preanalisis.linea << endl;
     }
     if(!match(NUMERO)) {
         lineaactual = preanalisis.linea;
         aux = listatokens[pos-1];
         if(aux.linea != lineaactual)
-            return;
+            return 0;
         while(preanalisis.tipo != PARENTESIS_CIERRE) {
             pos++;
             preanalisis = listatokens[pos];
             if(preanalisis.tipo == FIN)
                 break;
             if(preanalisis.linea != lineaactual)
-                return;
+                return 0;
         }
     }
+
     if(!match(PARENTESIS_CIERRE)) {
         lineaactual = preanalisis.linea;
         aux = listatokens[pos-1];
         if(aux.linea != lineaactual)
-            return;
+            return 0;
         while(preanalisis.tipo != PUNTO_COMA) {
             pos++;
             preanalisis = listatokens[pos];
             if(preanalisis.tipo == FIN)
                 break;
             if(preanalisis.linea != lineaactual)
-                return;
+                return 0;
         }
     }
-    if(!match(PUNTO_COMA)) {
+    /*if(!match(PUNTO_COMA)) {
         lineaactual = preanalisis.linea;
         aux = listatokens[pos-1];
         if(aux.linea != lineaactual)
-            return;
+            return 0;
 
         while(preanalisis.tipo != PUNTO_COMA && preanalisis.linea == lineaactual) {
             pos++;
@@ -791,27 +797,39 @@ void POTENCIA_S(bool ejecutar) {
         }
         pos++;
         preanalisis = listatokens[pos];
-        cout << "El valor de la pos actual es: " << preanalisis.valor << " en la linea: " << preanalisis.linea;
-    }
+        if(printDebug) cout << "El valor de la pos actual es: " << preanalisis.valor << " en la linea: " << preanalisis.linea;
+    }*/
+
+    int potencia = stoi(listatokens[pos-2].valor);
+    return pow(base, potencia);
 }
 // NUM_P -> numero | id
-void NUM_P() {
+int NUM_P() {
     if(printDebug) cout << "num_p->";
-    if(preanalisis.tipo == NUMERO)
+    if(preanalisis.tipo == NUMERO) {
+        int valor = stoi(preanalisis.valor);
         match(NUMERO);
+        return valor;
+    }
     else if(preanalisis.tipo == IDENTIFICADOR){
+        int valor = 0;
         if (tablaSimbolos.find(preanalisis.valor) == tablaSimbolos.end()) {
-            cout << "\033[91mError semantico en la linea " << preanalisis.linea << ": Variable " << preanalisis.valor << " no declarada.\033[0m" << endl;
-            errores++;
+            if(tablaSimGeneral.find(preanalisis.valor) == tablaSimGeneral.end()) {
+                cout << "\033[91mError semantico en la linea " << preanalisis.linea << ": Variable " << preanalisis.valor << " no declarada.\033[0m" << endl;
+                errores++;
+            }
+        } else {
+            valor = tablaSimbolos[preanalisis.valor];
         }
         match(IDENTIFICADOR);
-    }else {
+        return valor;
+    } else {
         cout << "\033[91mError de sintaxis en la linea " << preanalisis.linea << " se esperaba NUMERO o IDENTIFICADOR pero se encontro " << preanalisis.valor << "\033[0m" << endl;
         errores++;
         lineaactual = preanalisis.linea;
         aux = listatokens[pos-1];
         if(aux.linea != lineaactual)
-            return;
+            return 0;
         while(preanalisis.tipo != COMA) {
             pos++;
             preanalisis = listatokens[pos];
@@ -820,7 +838,8 @@ void NUM_P() {
             if(preanalisis.linea != lineaactual)
                 break;
         }
-        cout << "Estoy en la funcion num_p con valor " << preanalisis.valor << " linea " << preanalisis.linea << endl;
+        if(printDebug) cout << "Estoy en la funcion num_p con valor " << preanalisis.valor << " linea " << preanalisis.linea << endl;
+        return 0;
     }
 }
 
